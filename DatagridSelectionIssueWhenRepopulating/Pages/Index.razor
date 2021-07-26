@@ -1,0 +1,101 @@
+﻿@page "/"
+@using Blazorise.DataGrid
+@using System.Collections.ObjectModel
+
+<h1>Hello, world!</h1>
+
+<DataGrid TItem="Foo" Data="@Data" Editable="false" Sortable="false" PageSize="20" SelectionMode="DataGridSelectionMode.Multiple" @bind-SelectedRows="SelectedRows" @bind-SelectedRow="SelectedRow">
+    <DataGridColumn TItem="Foo" Field="@nameof(Foo.Key)" />
+    <DataGridColumn TItem="Foo" Field="@nameof(Foo.Name)" />
+</DataGrid>
+
+<Div>
+    <ol>
+        <li>Selected at least one item</li>
+        <li>Hit "Refresh list" button</li>
+        <li>See output how many items are selected</li>
+        <li>See if "SelectedRow" is null check printed true or false</li>
+    </ol>
+</Div>
+<Div>
+    <Button Color="Color.Primary" Clicked="@RefreshList">Refresh list</Button>
+    <br />
+    <span>Number of items selected: @SelectedRows.Count</span>
+    <br />
+    <span>How many selected items are not in the @nameof(Data) collection? @GetNumberOfSelectedButNonExistingItems()</span>
+    <br />
+    <span>Has @nameof(SelectedRow) an item selected? @(SelectedRow is not null)</span>
+</Div>
+
+@code{
+
+    private List<Foo> Data
+    {
+        get; set;
+    } = new List<Foo>();
+
+    private List<Foo> SelectedRows
+    {
+        get; set;
+    } = new List<Foo>();
+
+    private Foo SelectedRow
+    {
+        get; set;
+    }
+
+
+    #region initial state
+
+    private const int InitialItemCount = 10;
+
+    protected override void OnInitialized()
+    {
+        for (int i = 0; i < InitialItemCount; i++)
+        {
+            Data.Add(new Foo() { Key = i, Name = $"Nice name #{i}" });
+        }
+
+        base.OnInitialized();
+    }
+
+    private int GetNumberOfSelectedButNonExistingItems()
+    {
+        // Here it's important to test by reference and not by key!
+        return SelectedRows.Except(Data).Count();
+
+    }
+
+    #endregion
+
+    #region Selection refresher
+
+    private void RefreshList()
+    {
+        // Keep old selected to re-select them after refreshing the list
+        var oldSelectedRows = SelectedRows.Select(sr => sr.Key).ToList();
+
+        var newItems = GetNewListFromStorage().ToList();
+        var newSelected = newItems.Where(ni => oldSelectedRows.Contains(ni.Key)).ToList();
+
+        Data.Clear();
+        SelectedRows.Clear();
+        Data.AddRange(newItems);
+        SelectedRows.AddRange(newSelected);
+
+        StateHasChanged();
+    }
+
+
+    private IEnumerable<Foo> GetNewListFromStorage()
+    {
+        // Simulate count change. It's important to get NEW references
+        for (int i = 0; i < InitialItemCount + 5; i++)
+        {
+            yield return new Foo { Key = i, Name = $"Refreshed nice name #{i}" };
+        }
+    }
+
+    #endregion
+
+}
